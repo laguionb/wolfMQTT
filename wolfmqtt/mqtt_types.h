@@ -1,6 +1,6 @@
 /* mqtt_types.h
  *
- * Copyright (C) 2006-2020 wolfSSL Inc.
+ * Copyright (C) 2006-2021 wolfSSL Inc.
  *
  * This file is part of wolfMQTT.
  *
@@ -89,12 +89,12 @@
         #include <dispatch/dispatch.h>
         typedef dispatch_semaphore_t wm_Sem;
 
-    #elif defined(__FreeBSD__) || defined(__linux__)
+    #elif defined(__FreeBSD__) || defined(__linux__) || defined(__QNX__)
         /* Posix Style Pthread Mutex and Conditional */
         #define WOLFMQTT_POSIX_SEMAPHORES
         #include <pthread.h>
         typedef struct {
-            int lockCount;
+            volatile int lockCount;
             pthread_mutex_t mutex;
             pthread_cond_t cond;
         } wm_Sem;
@@ -180,6 +180,7 @@ enum MqttPacketResponseCodes {
     MQTT_CODE_ERROR_PROPERTY = -11,
     MQTT_CODE_ERROR_SERVER_PROP = -12,
     MQTT_CODE_ERROR_CALLBACK = -13,
+    MQTT_CODE_ERROR_SYSTEM = -14,
 
     MQTT_CODE_CONTINUE = -101,
     MQTT_CODE_STDIN_WAKE = -102,

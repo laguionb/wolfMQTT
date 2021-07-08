@@ -1,6 +1,6 @@
 /* mqttnet.h
  *
- * Copyright (C) 2006-2020 wolfSSL Inc.
+ * Copyright (C) 2006-2021 wolfSSL Inc.
  *
  * This file is part of wolfMQTT.
  *
@@ -30,7 +30,7 @@
 
 /* Default MQTT host broker to use, when none is specified in the examples */
 #ifndef DEFAULT_MQTT_HOST
-#define DEFAULT_MQTT_HOST       "mqtt.eclipse.org" /* broker.hivemq.com */
+#define DEFAULT_MQTT_HOST       "test.mosquitto.org" /* broker.hivemq.com */
 #endif
 
 /* Functions used to handle the MqttNet structure creation / destruction */

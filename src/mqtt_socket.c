@@ -1,6 +1,6 @@
 /* mqtt_socket.c
  *
- * Copyright (C) 2006-2020 wolfSSL Inc.
+ * Copyright (C) 2006-2021 wolfSSL Inc.
  *
  * This file is part of wolfMQTT.
  *
@@ -383,9 +383,9 @@ int MqttSocket_Connect(MqttClient *client, const char* host, word16 port,
         wolfSSL_CTX_SetMinDhKey_Sz(client->tls.ctx, WOLF_TLS_DHKEY_BITS_MIN);
     #endif
 
-        /* Setup the async IO callbacks */
-        wolfSSL_SetIORecv(client->tls.ctx, MqttSocket_TlsSocketReceive);
-        wolfSSL_SetIOSend(client->tls.ctx, MqttSocket_TlsSocketSend);
+        /* Setup the IO callbacks */
+        wolfSSL_CTX_SetIORecv(client->tls.ctx, MqttSocket_TlsSocketReceive);
+        wolfSSL_CTX_SetIOSend(client->tls.ctx, MqttSocket_TlsSocketSend);
 
         if (client->tls.ssl == NULL) {
             client->tls.ssl = wolfSSL_new(client->tls.ctx);
@@ -394,10 +394,10 @@ int MqttSocket_Connect(MqttClient *client, const char* host, word16 port,
                 rc = -1;
                 goto exit;
             }
-
-            wolfSSL_SetIOReadCtx(client->tls.ssl, (void *)client);
-            wolfSSL_SetIOWriteCtx(client->tls.ssl, (void *)client);
         }
+        /* Set the IO callback context */
+        wolfSSL_SetIOReadCtx(client->tls.ssl, (void *)client);
+        wolfSSL_SetIOWriteCtx(client->tls.ssl, (void *)client);
 
         if (client->ctx != NULL) {
             /* Store any app data for use by the tls verify callback*/
@@ -482,7 +482,7 @@ int MqttSocket_Disconnect(MqttClient *client)
         client->flags &= ~MQTT_CLIENT_FLAG_IS_CONNECTED;
     }
 #ifdef WOLFMQTT_DEBUG_SOCKET
-    PRINTF("MqttSocket_Disconnect: Rc=%d\n", rc);
+    PRINTF("MqttSocket_Disconnect: Rc=%d", rc);
 #endif
 
     /* Check for error */

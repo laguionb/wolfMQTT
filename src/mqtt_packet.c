@@ -1,6 +1,6 @@
 /* mqtt_packet.c
  *
- * Copyright (C) 2006-2020 wolfSSL Inc.
+ * Copyright (C) 2006-2021 wolfSSL Inc.
  *
  * This file is part of wolfMQTT.
  *
@@ -496,7 +496,7 @@ int MqttDecode_Props(MqttPacketType packet, MqttProp** props, byte* pbuf,
 
         /* Decode the Identifier */
         tmp = MqttDecode_Vbi(buf, (word32*)&cur_prop->type,
-                buf_len - (buf - pbuf));
+                (word32)(buf_len - (buf - pbuf)));
         if (tmp < 0) {
             return tmp;
         }
@@ -506,6 +506,11 @@ int MqttDecode_Props(MqttPacketType packet, MqttProp** props, byte* pbuf,
 
         /* TODO: validate packet type */
         (void)packet;
+
+        if (cur_prop->type < 0 ||
+            cur_prop->type >= sizeof(gPropMatrix) / sizeof(gPropMatrix[0])) {
+            return MQTT_CODE_ERROR_PROPERTY;
+        }
 
         switch (gPropMatrix[cur_prop->type].data)
         {
@@ -546,7 +551,7 @@ int MqttDecode_Props(MqttPacketType packet, MqttProp** props, byte* pbuf,
             case MQTT_DATA_TYPE_VAR_INT:
             {
                 tmp = MqttDecode_Vbi(buf, &cur_prop->data_int,
-                        buf_len -(buf - pbuf));
+                        (word32)(buf_len -(buf - pbuf)));
                 if (tmp < 0) {
                     return tmp;
                 }
@@ -739,16 +744,6 @@ int MqttEncode_Connect(byte *tx_buf, int tx_buf_len, MqttConnect *mc_connect)
     if (mc_connect->username) {
         tx_payload += MqttEncode_String(tx_payload, mc_connect->username);
     }
-    else {
-        /* A Server MAY allow a Client to supply a ClientID that has a length
-         * of zero bytes, however if it does so the Server MUST treat this as a
-         * special case and assign a unique ClientID to that Client
-         * [MQTT-3.1.3-6]. It MUST then process the CONNECT packet as if the
-         * Client had provided that unique ClientID, and MUST return the
-         * Assigned Client Identifier in the CONNACK packet [MQTT-3.1.3-7].
-         */
-        tx_payload += MqttEncode_Num(tx_payload, (word16)0);
-    }
     if (mc_connect->password) {
         tx_payload += MqttEncode_String(tx_payload, mc_connect->password);
     }
@@ -788,7 +783,7 @@ int MqttDecode_ConnectAck(byte *rx_buf, int rx_buf_len,
             int tmp;
             /* Decode Length of Properties */
             tmp = MqttDecode_Vbi(rx_payload, &props_len,
-                    rx_buf_len - (rx_payload - rx_buf));
+                    (word32)(rx_buf_len - (rx_payload - rx_buf)));
             if (tmp < 0) {
                 return tmp;
             }
@@ -797,7 +792,8 @@ int MqttDecode_ConnectAck(byte *rx_buf, int rx_buf_len,
                 /* Decode the Properties */
                 tmp = MqttDecode_Props(MQTT_PACKET_TYPE_CONNECT_ACK,
                                &connect_ack->props, rx_payload,
-                               rx_buf_len - (rx_payload - rx_buf), props_len);
+                               (word32)(rx_buf_len - (rx_payload - rx_buf)),
+                               props_len);
                 if (tmp < 0)
                     return tmp;
                 rx_payload += tmp;
@@ -868,7 +864,7 @@ int MqttEncode_Publish(byte *tx_buf, int tx_buf_len, MqttPublish *publish,
     }
 
     /* Check for buffer room */
-    if (tx_buf_len < header_len + variable_len + payload_len) {
+    if (tx_buf_len < header_len + variable_len) {
         return MQTT_CODE_ERROR_OUT_OF_BUFFER;
     }
 
@@ -967,7 +963,7 @@ int MqttDecode_Publish(byte *rx_buf, int rx_buf_len, MqttPublish *publish)
 
         /* Decode Length of Properties */
         tmp = MqttDecode_Vbi(rx_payload, &props_len,
-                rx_buf_len - (rx_payload - rx_buf));
+                (word32)(rx_buf_len - (rx_payload - rx_buf)));
         if (tmp < 0)
             return tmp;
         variable_len += tmp + props_len;
@@ -977,7 +973,7 @@ int MqttDecode_Publish(byte *rx_buf, int rx_buf_len, MqttPublish *publish)
                 /* Decode the Properties */
                 tmp = MqttDecode_Props((MqttPacketType)publish->type,
                     &publish->props, rx_payload,
-                    rx_buf_len - (rx_payload - rx_buf), props_len);
+                    (word32)(rx_buf_len - (rx_payload - rx_buf)), props_len);
                 if (tmp < 0)
                     return tmp;
                 rx_payload += tmp;
@@ -1117,17 +1113,18 @@ int MqttDecode_PublishResp(byte* rx_buf, int rx_buf_len, byte type,
 
             /* Decode Length of Properties */
             tmp = MqttDecode_Vbi(rx_payload, &props_len,
-                    rx_buf_len - (rx_payload - rx_buf));
+                    (word32)(rx_buf_len - (rx_payload - rx_buf)));
             if (tmp < 0)
                 return tmp;
 
-            if (props_len <= rx_buf_len - (rx_payload - rx_buf)) {
+            if (props_len <= (word32)(rx_buf_len - (rx_payload - rx_buf))) {
                 rx_payload += tmp;
                 if (props_len > 0) {
                     /* Decode the Properties */
                     tmp = MqttDecode_Props((MqttPacketType)type,
                                 &publish_resp->props, rx_payload,
-                                rx_buf_len - (rx_payload - rx_buf), props_len);
+                                (word32)(rx_buf_len - (rx_payload - rx_buf)),
+                                props_len);
                     if (tmp < 0)
                         return tmp;
                     rx_payload += tmp;
@@ -1257,17 +1254,18 @@ int MqttDecode_SubscribeAck(byte* rx_buf, int rx_buf_len,
 
             /* Decode Length of Properties */
             tmp = MqttDecode_Vbi(rx_payload, &props_len,
-                    rx_buf_len - (rx_payload - rx_buf));
+                    (word32)(rx_buf_len - (rx_payload - rx_buf)));
             if (tmp < 0)
                 return tmp;
 
-            if (props_len <= rx_buf_len - (rx_payload - rx_buf)) {
+            if (props_len <= (word32)(rx_buf_len - (rx_payload - rx_buf))) {
                 rx_payload += tmp;
                 if (props_len > 0) {
                     /* Decode the Properties */
                     tmp = MqttDecode_Props(MQTT_PACKET_TYPE_SUBSCRIBE_ACK,
                                 &subscribe_ack->props, rx_payload,
-                                rx_buf_len - (rx_payload - rx_buf), props_len);
+                                (word32)(rx_buf_len - (rx_payload - rx_buf)),
+                                props_len);
                     if (tmp < 0)
                         return tmp;
                     rx_payload += tmp;
@@ -1278,7 +1276,10 @@ int MqttDecode_SubscribeAck(byte* rx_buf, int rx_buf_len,
         }
 #endif
 
-        subscribe_ack->return_codes = rx_payload; /* List of return codes */
+        /* payload is list of return codes (MqttSubscribeAckReturnCodes) */
+        if (remain_len > MAX_MQTT_TOPICS)
+            remain_len = MAX_MQTT_TOPICS;
+        XMEMCPY(subscribe_ack->return_codes, rx_payload, remain_len);
     }
 
     /* Return total length of packet */
@@ -1390,17 +1391,18 @@ int MqttDecode_UnsubscribeAck(byte *rx_buf, int rx_buf_len,
 
                 /* Decode Length of Properties */
                 tmp = MqttDecode_Vbi(rx_payload, &props_len,
-                        rx_buf_len - (rx_payload - rx_buf));
+                        (word32)(rx_buf_len - (rx_payload - rx_buf)));
                 if (tmp < 0)
                     return tmp;
 
-                if (props_len <= rx_buf_len - (rx_payload - rx_buf)) {
+                if (props_len <= (word32)(rx_buf_len - (rx_payload - rx_buf))) {
                     rx_payload += tmp;
                     if (props_len > 0) {
                         /* Decode the Properties */
                         tmp = MqttDecode_Props(MQTT_PACKET_TYPE_UNSUBSCRIBE_ACK,
                                 &unsubscribe_ack->props, rx_payload,
-                                rx_buf_len - (rx_payload - rx_buf), props_len);
+                                (word32)(rx_buf_len - (rx_payload - rx_buf)),
+                                props_len);
                         if (tmp < 0)
                             return tmp;
                         rx_payload += tmp;
@@ -1567,17 +1569,18 @@ int MqttDecode_Disconnect(byte *rx_buf, int rx_buf_len, MqttDisconnect *disc)
         if (remain_len > 1) {
             /* Decode Length of Properties */
             tmp = MqttDecode_Vbi(rx_payload, &props_len,
-                    rx_buf_len - (rx_payload - rx_buf));
+                    (word32)(rx_buf_len - (rx_payload - rx_buf)));
             if (tmp < 0)
                 return tmp;
 
-            if (props_len <= rx_buf_len - (rx_payload - rx_buf)) {
+            if (props_len <= (word32)(rx_buf_len - (rx_payload - rx_buf))) {
                 rx_payload += tmp;
                 if (props_len > 0) {
                     /* Decode the Properties */
                     tmp = MqttDecode_Props(MQTT_PACKET_TYPE_DISCONNECT,
                             &disc->props, rx_payload,
-                            rx_buf_len - (rx_payload - rx_buf), props_len);
+                            (word32)(rx_buf_len - (rx_payload - rx_buf)),
+                            props_len);
                     if (tmp < 0)
                         return tmp;
                     rx_payload += tmp;
@@ -1678,17 +1681,18 @@ int MqttDecode_Auth(byte *rx_buf, int rx_buf_len, MqttAuth *auth)
     {
         /* Decode Length of Properties */
         tmp = MqttDecode_Vbi(rx_payload, &props_len,
-                rx_buf_len - (rx_payload - rx_buf));
+                (word32)(rx_buf_len - (rx_payload - rx_buf)));
         if (tmp < 0)
             return tmp;
 
-        if (props_len <= rx_buf_len - (rx_payload - rx_buf)) {
+        if (props_len <= (word32)(rx_buf_len - (rx_payload - rx_buf))) {
             rx_payload += tmp;
             if (props_len > 0) {
                 /* Decode the Properties */
                 tmp = MqttDecode_Props(MQTT_PACKET_TYPE_AUTH,
                         &auth->props, rx_payload,
-                        rx_buf_len - (rx_payload - rx_buf), props_len);
+                        (word32)(rx_buf_len - (rx_payload - rx_buf)),
+                        props_len);
                 if (tmp < 0)
                     return tmp;
                 rx_payload += tmp;
@@ -1856,6 +1860,7 @@ int MqttPacket_Read(MqttClient *client, byte* rx_buf, int rx_buf_len,
     {
         case MQTT_PK_BEGIN:
         {
+            client->read.pos = 0;
             client->packet.header_len = 2;
             client->packet.remain_len = 0;
 
@@ -2887,8 +2892,7 @@ int SN_Encode_Subscribe(byte *tx_buf, int tx_buf_len, SN_Subscribe *subscribe)
     }
 
     /* Determine packet length */
-    if ((subscribe->topic_type & SN_PACKET_FLAG_TOPICIDTYPE_MASK) ==
-            SN_TOPIC_ID_TYPE_NORMAL) {
+    if (subscribe->topic_type == SN_TOPIC_ID_TYPE_NORMAL) {
         /* Topic name is a string */
         total_len = (int)XSTRLEN(subscribe->topicNameId);
     }
@@ -2937,8 +2941,7 @@ int SN_Encode_Subscribe(byte *tx_buf, int tx_buf_len, SN_Subscribe *subscribe)
     tx_payload += MqttEncode_Num(tx_payload, subscribe->packet_id);
 
     /* Encode topic */
-    if ((subscribe->topic_type & SN_PACKET_FLAG_TOPICIDTYPE_MASK) ==
-            SN_TOPIC_ID_TYPE_NORMAL) {
+    if (subscribe->topic_type == SN_TOPIC_ID_TYPE_NORMAL) {
         /* Topic name is a string */
         XMEMCPY(tx_payload, subscribe->topicNameId, XSTRLEN(subscribe->topicNameId));
     }
@@ -3037,8 +3040,9 @@ int SN_Encode_Publish(byte *tx_buf, int tx_buf_len, SN_Publish *publish)
     *tx_payload++ = flags;
 
     /* Encode topic */
-    if (publish->topic_type == SN_TOPIC_ID_TYPE_SHORT) {
-        /* Short topic name is 2 chars */
+    if ((publish->topic_type == SN_TOPIC_ID_TYPE_SHORT) ||
+        (publish->topic_type == SN_TOPIC_ID_TYPE_PREDEF)) {
+        /* Short and predefined topic names are 2 chars */
         XMEMCPY(tx_payload, publish->topic_name, 2);
         tx_payload += 2;
     }
@@ -3211,8 +3215,7 @@ int SN_Encode_Unsubscribe(byte *tx_buf, int tx_buf_len,
     }
 
     /* Determine packet length */
-    if ((unsubscribe->topic_type & SN_PACKET_FLAG_TOPICIDTYPE_MASK) ==
-            SN_TOPIC_ID_TYPE_NORMAL) {
+    if (unsubscribe->topic_type == SN_TOPIC_ID_TYPE_NORMAL) {
         /* Topic name is a string */
         total_len = (int)XSTRLEN(unsubscribe->topicNameId);
     }
@@ -3259,8 +3262,7 @@ int SN_Encode_Unsubscribe(byte *tx_buf, int tx_buf_len,
     tx_payload += MqttEncode_Num(tx_payload, unsubscribe->packet_id);
 
     /* Encode topic */
-    if ((unsubscribe->topic_type & SN_PACKET_FLAG_TOPICIDTYPE_MASK) ==
-            SN_TOPIC_ID_TYPE_NORMAL) {
+    if (unsubscribe->topic_type == SN_TOPIC_ID_TYPE_NORMAL) {
         /* Topic name is a string */
         XMEMCPY(tx_payload, unsubscribe->topicNameId,
                 XSTRLEN(unsubscribe->topicNameId));

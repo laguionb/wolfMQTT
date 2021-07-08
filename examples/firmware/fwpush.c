@@ -1,6 +1,6 @@
 /* fwpush.c
  *
- * Copyright (C) 2006-2020 wolfSSL Inc.
+ * Copyright (C) 2006-2021 wolfSSL Inc.
  *
  * This file is part of wolfMQTT.
  *
@@ -35,7 +35,7 @@
 
     /* The signature wrapper for this example was added in wolfSSL after 3.7.1 */
     #if defined(LIBWOLFSSL_VERSION_HEX) && LIBWOLFSSL_VERSION_HEX > 0x03007001 \
-    	    && defined(HAVE_ECC)
+    	    && defined(HAVE_ECC) && !defined(NO_SIG_WRAPPER)
         #undef ENABLE_FIRMWARE_EXAMPLE
         #define ENABLE_FIRMWARE_EXAMPLE
     #endif
@@ -560,6 +560,7 @@ int fwpush_test(MQTTCtx *mqttCtx)
         case WMQ_SUB:
         case WMQ_WAIT_MSG:
         case WMQ_UNSUB:
+        case WMQ_PING:
         default:
             rc = MQTT_CODE_ERROR_STAT;
             goto exit;

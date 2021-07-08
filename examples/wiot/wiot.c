@@ -1,6 +1,6 @@
 /* wiot.c
  *
- * Copyright (C) 2006-2020 wolfSSL Inc.
+ * Copyright (C) 2006-2021 wolfSSL Inc.
  *
  * This file is part of wolfMQTT.
  *
@@ -228,9 +228,10 @@ int wiot_test(MQTTCtx *mqttCtx)
     mqttCtx->subscribe.topics = mqttCtx->topics;
 #ifdef WIOT_USE_QUICKSTART
     /* Print web site URL to monitor client activity */
-    PRINTF("\r\nTo view the published sample data visit:");
+    PRINTF("");
+    PRINTF("To view the published sample data visit:");
     PRINTF("https://" WIOT_ORG_ID ".internetofthings.ibmcloud.com/#/device/" WIOT_DEV_ID "/" WIOT_EVT "/");
-    PRINTF("\r\n");
+    PRINTF("");
 #endif
 
     rc = MqttClient_Subscribe(&mqttCtx->client, &mqttCtx->subscribe);

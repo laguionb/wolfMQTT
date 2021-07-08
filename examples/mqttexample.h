@@ -1,6 +1,6 @@
 /* mqttexample.h
  *
- * Copyright (C) 2006-2020 wolfSSL Inc.
+ * Copyright (C) 2006-2021 wolfSSL Inc.
  *
  * This file is part of wolfMQTT.
  *
@@ -88,6 +88,7 @@ typedef enum _MQTTCtxState {
     WMQ_SUB,
     WMQ_PUB,
     WMQ_WAIT_MSG,
+    WMQ_PING,
     WMQ_UNSUB,
     WMQ_DISCONNECT,
     WMQ_NET_DISCONNECT,
